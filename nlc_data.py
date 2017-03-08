@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import gzip
 import os
+import pdb
 import re
 import tarfile
 
@@ -27,10 +28,10 @@ from six.moves import urllib
 from tensorflow.python.platform import gfile
 
 # Special vocabulary symbols - we always put them at the start.
-_PAD = b"<pad>"
-_SOS = b"<sos>"
-_EOS = b"<eos>"
-_UNK = b"<unk>"
+_PAD = "<pad>"
+_SOS = "<sos>"
+_EOS = "<eos>"
+_UNK = "<unk>"
 _START_VOCAB = [_PAD, _SOS, _EOS, _UNK]
 
 PAD_ID = 0
@@ -150,7 +151,7 @@ def create_vocabulary(vocabulary_path, data_paths, max_vocabulary_size,
             vocab_list = vocab_list[:max_vocabulary_size]
         with gfile.GFile(vocabulary_path, mode="wb") as vocab_file:
             for w in vocab_list:
-                vocab_file.write(w + b"\n")
+                vocab_file.write(w.encode("utf-8") + b"\n")
 
 
 def initialize_vocabulary(vocabulary_path, bpe=False):

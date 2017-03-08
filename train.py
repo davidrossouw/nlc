@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_float("learning_rate", 0.0003, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.95, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 10.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped on non-recurrent connections.")
-tf.app.flags.DEFINE_integer("batch_size", 128, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("batch_size", 1024, "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("epochs", 40, "Number of epochs to train.")
 tf.app.flags.DEFINE_integer("size", 256, "Size of each model layer.")
 tf.app.flags.DEFINE_integer("num_layers", 2, "Number of layers in the model.")
@@ -48,7 +48,7 @@ tf.app.flags.DEFINE_string("data_dir", "data", "Data directory")
 tf.app.flags.DEFINE_string("train_dir", "data", "Training directory.")
 tf.app.flags.DEFINE_string("tokenizer", "CHAR", "BPE / CHAR / WORD.")
 tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
-tf.app.flags.DEFINE_integer("print_every", 1, "How many iterations to do per print.")
+tf.app.flags.DEFINE_integer("print_every", 100, "How many iterations to do per print.")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -105,8 +105,8 @@ def train():
         logging.info("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
         model = create_model(sess, vocab_size, False)
 
-        logging.info('Initial validation cost: %f' % validate(model, sess, x_dev, y_dev))
-        # logging.info('Initial validation cost')
+        #logging.info('Initial validation cost: %f' % validate(model, sess, x_dev, y_dev))
+        logging.info('Initial validation cost')
 
         if False:
             tic = time.time()
@@ -162,6 +162,9 @@ def train():
                         'epoch %d, iter %d, cost %f, exp_cost %f, grad norm %f, param norm %f, tps %f, length mean/std %f/%f' %
                         (epoch, current_step, cost, exp_cost / exp_length, grad_norm, param_norm, tps, mean_length,
                          std_length))
+                    ## Checkpoint
+                    checkpoint_path = os.path.join(FLAGS.train_dir, "best.ckpt")
+                    model.saver.save(sess, checkpoint_path, global_step=epoch)
             epoch_toc = time.time()
 
             ## Checkpoint

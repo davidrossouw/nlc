@@ -358,7 +358,7 @@ class NLCModel(object):
         input_feed = {}
         input_feed[self.encoder_output] = encoder_output
         input_feed[self.target_tokens] = target_tokens
-        input_feed[self.target_mask] = target_mask if target_mask else np.ones_like(target_tokens)
+        input_feed[self.target_mask] = target_mask if target_mask.any() else np.ones_like(target_tokens)
         input_feed[self.keep_prob] = 1.
 
         if not decoder_states:
