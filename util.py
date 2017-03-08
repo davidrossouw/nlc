@@ -79,13 +79,13 @@ def refill(batches, fdx, fdy, batch_size, sort_and_shuffle=True):
   return
 
 def add_sos_eos(tokens):
-  return map(lambda token_list: [nlc_data.SOS_ID] + token_list + [nlc_data.EOS_ID], tokens)
+  return list(map(lambda token_list: [nlc_data.SOS_ID] + token_list + [nlc_data.EOS_ID], tokens))
 
 def padded(tokens, depth):
-  maxlen = max(map(lambda x: len(x), tokens))
+  maxlen = max(list(map(lambda x: len(x), tokens)))
   align = pow(2, depth - 1)
   padlen = maxlen + (align - maxlen) % align
-  return map(lambda token_list: token_list + [nlc_data.PAD_ID] * (padlen - len(token_list)), tokens)
+  return list(map(lambda token_list: token_list + [nlc_data.PAD_ID] * (padlen - len(token_list)), tokens))
 
 
 def get_tokenizer(flags):
@@ -96,6 +96,6 @@ def get_tokenizer(flags):
   elif flags.tokenizer.lower() == 'word':
     return nlc_data.basic_tokenizer
   else:
-    raise
+    raise Exception
   return tokenizer
 
