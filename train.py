@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_float("learning_rate", 0.0003, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.95, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 10.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped on non-recurrent connections.")
-tf.app.flags.DEFINE_integer("batch_size", 1024, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("epochs", 40, "Number of epochs to train.")
 tf.app.flags.DEFINE_integer("size", 256, "Size of each model layer.")
 tf.app.flags.DEFINE_integer("num_layers", 2, "Number of layers in the model.")
@@ -101,7 +101,9 @@ def train():
     with open(os.path.join(FLAGS.train_dir, "flags.json"), 'w') as fout:
         json.dump(FLAGS.__flags, fout)
 
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
         logging.info("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
         model = create_model(sess, vocab_size, False)
 
@@ -162,18 +164,15 @@ def train():
                         'epoch %d, iter %d, cost %f, exp_cost %f, grad norm %f, param norm %f, tps %f, length mean/std %f/%f' %
                         (epoch, current_step, cost, exp_cost / exp_length, grad_norm, param_norm, tps, mean_length,
                          std_length))
+
+                if current_step % (FLAGS.print_every * 10) == 0:
+                    ## Validate
+                    epoch_toc = time.time()
+                    valid_cost = validate(model, sess, x_dev, y_dev)
+                    logging.info("Epoch %d Validation cost: %f time: %f" % (epoch, valid_cost, epoch_toc - epoch_tic))
                     ## Checkpoint
                     checkpoint_path = os.path.join(FLAGS.train_dir, "best.ckpt")
                     model.saver.save(sess, checkpoint_path, global_step=epoch)
-            epoch_toc = time.time()
-
-            ## Checkpoint
-            checkpoint_path = os.path.join(FLAGS.train_dir, "best.ckpt")
-
-            ## Validate
-            valid_cost = validate(model, sess, x_dev, y_dev)
-
-            logging.info("Epoch %d Validation cost: %f time: %f" % (epoch, valid_cost, epoch_toc - epoch_tic))
 
             if len(previous_losses) > 2 and valid_cost > previous_losses[-1]:
                 logging.info("Annealing learning rate by %f" % FLAGS.learning_rate_decay_factor)

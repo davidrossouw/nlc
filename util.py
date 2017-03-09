@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import pdb
 import random
 
 import numpy as np
@@ -28,6 +27,7 @@ import nlc_data
 
 FLAGS = tf.app.flags.FLAGS
 CHARS = list("abcdefghijklmnopqrstuvwxyz0123456789 ")
+vocab, reverse_vocab = None, None
 
 
 def tokenize(string):
@@ -58,6 +58,9 @@ def add_noise_to_string(a_string, amount_of_noise):
 
 
 def pair_iter(fnamex, fnamey, batch_size, num_layers, sort_and_shuffle=True):
+    global vocab, reverse_vocab
+    vocab, reverse_vocab = nlc_data.initialize_vocabulary("data/char/vocab.dat")
+
     fdx, fdy = open(fnamex), open(fnamey)
     batches = []
 
@@ -134,6 +137,3 @@ def get_tokenizer(flags):
         return nlc_data.basic_tokenizer
     else:
         raise Exception
-
-
-vocab, reverse_vocab = nlc_data.initialize_vocabulary("data/char/vocab.dat")
