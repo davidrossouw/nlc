@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import math
 import os
+import pdb
 import random
 import sys
 import time
@@ -26,7 +27,6 @@ import random
 import string
 
 import numpy as np
-from six.moves import xrange
 import tensorflow as tf
 
 import kenlm
@@ -35,22 +35,39 @@ import nlc_model
 import nlc_data
 from util import get_tokenizer
 
-tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
+# tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
+# tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.95, "Learning rate decays by this much.")
+# tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
+# tf.app.flags.DEFINE_float("dropout", 0.1, "Fraction of units randomly dropped on non-recurrent connections.")
+# tf.app.flags.DEFINE_integer("batch_size", 128, "Batch size to use during training.")
+# tf.app.flags.DEFINE_integer("epochs", 0, "Number of epochs to train.")
+# tf.app.flags.DEFINE_integer("size", 400, "Size of each model layer.")
+# tf.app.flags.DEFINE_integer("num_layers", 3, "Number of layers in the model.")
+# tf.app.flags.DEFINE_integer("max_vocab_size", 40000, "Vocabulary size limit.")
+# tf.app.flags.DEFINE_integer("max_seq_len", 200, "Maximum sequence length.")
+# tf.app.flags.DEFINE_string("data_dir", "/tmp", "Data directory")
+# tf.app.flags.DEFINE_string("train_dir", "/tmp", "Training directory.")
+# tf.app.flags.DEFINE_string("tokenizer", "CHAR", "Set to WORD to train word level model.")
+# tf.app.flags.DEFINE_integer("beam_size", 8, "Size of beam.")
+# tf.app.flags.DEFINE_string("lmfile", None, "arpa file of the language model.")
+# tf.app.flags.DEFINE_float("alpha", 0.3, "Language model relative weight.")
+tf.app.flags.DEFINE_float("learning_rate", 0.0003, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.95, "Learning rate decays by this much.")
-tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
-tf.app.flags.DEFINE_float("dropout", 0.1, "Fraction of units randomly dropped on non-recurrent connections.")
-tf.app.flags.DEFINE_integer("batch_size", 128, "Batch size to use during training.")
-tf.app.flags.DEFINE_integer("epochs", 0, "Number of epochs to train.")
-tf.app.flags.DEFINE_integer("size", 400, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("num_layers", 3, "Number of layers in the model.")
-tf.app.flags.DEFINE_integer("max_vocab_size", 40000, "Vocabulary size limit.")
-tf.app.flags.DEFINE_integer("max_seq_len", 200, "Maximum sequence length.")
-tf.app.flags.DEFINE_string("data_dir", "/tmp", "Data directory")
-tf.app.flags.DEFINE_string("train_dir", "/tmp", "Training directory.")
-tf.app.flags.DEFINE_string("tokenizer", "CHAR", "Set to WORD to train word level model.")
+tf.app.flags.DEFINE_float("max_gradient_norm", 10.0, "Clip gradients to this norm.")
+tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped on non-recurrent connections.")
+tf.app.flags.DEFINE_integer("batch_size", 1024, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("epochs", 40, "Number of epochs to train.")
+tf.app.flags.DEFINE_integer("size", 256, "Size of each model layer.")
+tf.app.flags.DEFINE_integer("num_layers", 2, "Number of layers in the model.")
+tf.app.flags.DEFINE_integer("max_vocab_size", 42, "Vocabulary size limit.")
+tf.app.flags.DEFINE_integer("max_seq_len", 50, "Maximum sequence length.")
+tf.app.flags.DEFINE_string("data_dir", "data", "Data directory")
+tf.app.flags.DEFINE_string("train_dir", "data", "Training directory.")
+tf.app.flags.DEFINE_string("tokenizer", "CHAR", "BPE / CHAR / WORD.")
 tf.app.flags.DEFINE_integer("beam_size", 8, "Size of beam.")
 tf.app.flags.DEFINE_string("lmfile", None, "arpa file of the language model.")
 tf.app.flags.DEFINE_float("alpha", 0.3, "Language model relative weight.")
+
 
 FLAGS = tf.app.flags.FLAGS
 reverse_vocab, vocab = None, None
@@ -62,12 +79,12 @@ def create_model(session, vocab_size, forward_only):
       FLAGS.learning_rate, FLAGS.learning_rate_decay_factor, FLAGS.dropout,
       forward_only=forward_only)
   ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-  if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
+  if ckpt : #and tf.gfile.Exists(ckpt.model_checkpoint_path):
     print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
     model.saver.restore(session, ckpt.model_checkpoint_path)
   else:
     print("Created model with fresh parameters.")
-    session.run(tf.initialize_all_variables())
+    session.run(tf.global_variables_initializer())
   return model
 
 
@@ -161,9 +178,10 @@ def decode():
     model = create_model(sess, vocab_size, False)
 
     while True:
-      sent = raw_input("Enter a sentence: ")
+      sent = input("Enter a sentence: ")
 
       output_sent = fix_sent(model, sess, sent)
+      pdb.set_trace()
 
       print("Candidate: ", output_sent)
 
