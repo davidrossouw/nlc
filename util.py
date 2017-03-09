@@ -90,11 +90,10 @@ def refill(batches, fdx, fdy, batch_size, sort_and_shuffle=True):
     # linex, liney = fdx.readline(), fdy.readline()
 
     while linex:
-        # x_tokens, y_tokens = tokenize(linex), tokenize(liney)
-        x_tokens = tokenize(linex)
-        orig_str = "".join(reverse_vocab[x] for x in x_tokens)
+        y_tokens = tokenize(linex) # y_tokens are source of truth
+        orig_str = "".join(reverse_vocab[x] for x in y_tokens)
         noisy_str = add_noise_to_string(orig_str, 0.2 / FLAGS.max_seq_len)
-        y_tokens = nlc_data.sentence_to_token_ids(noisy_str, vocab, tokenizer=get_tokenizer(FLAGS))
+        x_tokens = nlc_data.sentence_to_token_ids(noisy_str, vocab, tokenizer=get_tokenizer(FLAGS)) # x_tokens are noisy str
 
         if len(x_tokens) < FLAGS.max_seq_len and len(y_tokens) < FLAGS.max_seq_len:
             line_pairs.append((x_tokens, y_tokens))

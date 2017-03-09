@@ -8,17 +8,21 @@ import tensorflow as tf
 import nlc_data
 import numpy as np
 
-from decode import decode_beam, detokenize, reverse_vocab
-from train import create_model
+from decode import decode_beam, detokenize, create_model, FLAGS
+# from train import create_model
 from util import pair_iter
 
-with open(os.path.join("data", "flags.json"), 'r') as fout:
-    FLAGS = json.load(fout)
 
-best_epoch = 1
+vocab, reverse_vocab = nlc_data.initialize_vocabulary("data/char/vocab.dat")
+best_epoch = 2
 vocab_size = 42
 checkpoint_path = os.path.join(FLAGS.train_dir, "best.ckpt")
-with tf.Session() as sess:
+
+config = tf.ConfigProto(
+    device_count={'GPU': 0}
+)
+
+with tf.Session(config=config) as sess:
     logging.info("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
     model = create_model(sess, vocab_size, False)
 
@@ -40,7 +44,11 @@ with tf.Session() as sess:
         beam_toks, probs = decode_beam(model, sess, encoder_output, FLAGS.beam_size)
         # De-tokenize
         beam_strs = detokenize(beam_toks, reverse_vocab)
-
+        orig_str = "".join(reverse_vocab[x] for x in source_tokens.T[0])
+        noisy_str = "".join(reverse_vocab[x] for x in target_tokens.T[0])
+        print(orig_str)
+        print(noisy_str)
+        print(beam_strs)
         pdb.set_trace()
         # print(dec)
         print(source_tokens)
