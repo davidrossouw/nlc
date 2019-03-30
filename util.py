@@ -20,6 +20,7 @@ from __future__ import print_function
 import random
 
 import numpy as np
+import os
 import tensorflow as tf
 from numpy.random import choice as random_choice, randint as random_randint, rand
 
@@ -59,7 +60,7 @@ def add_noise_to_string(a_string, amount_of_noise):
 
 def pair_iter(fnamex, fnamey, batch_size, num_layers, sort_and_shuffle=True):
     global vocab, reverse_vocab
-    vocab, reverse_vocab = nlc_data.initialize_vocabulary("data/char/vocab.dat")
+    vocab, reverse_vocab = nlc_data.initialize_vocabulary(os.path.join(FLAGS.data_dir, FLAGS.tokenizer.lower(), "vocab.dat"))
 
     fdx, fdy = open(fnamex), open(fnamey)
     batches = []

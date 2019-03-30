@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_integer("max_vocab_size", 42, "Vocabulary size limit.")
 # tf.app.flags.DEFINE_integer("max_seq_len", 200, "Maximum sequence length.")
 tf.app.flags.DEFINE_integer("max_seq_len", 50, "Maximum sequence length.")
 tf.app.flags.DEFINE_string("data_dir", "data", "Data directory")
-tf.app.flags.DEFINE_string("train_dir", "data", "Training directory.")
+tf.app.flags.DEFINE_string("output_dir", "data", "Training directory.")
 tf.app.flags.DEFINE_string("tokenizer", "CHAR", "BPE / CHAR / WORD.")
 tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
 tf.app.flags.DEFINE_integer("print_every", 100, "How many iterations to do per print.")
@@ -58,7 +58,7 @@ def create_model(session, vocab_size, forward_only):
         vocab_size, FLAGS.size, FLAGS.num_layers, FLAGS.max_gradient_norm, FLAGS.batch_size,
         FLAGS.learning_rate, FLAGS.learning_rate_decay_factor, FLAGS.dropout,
         forward_only=forward_only, optimizer=FLAGS.optimizer)
-    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+    ckpt = tf.train.get_checkpoint_state(FLAGS.output_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         logging.info("Reading model parameters from %s" % ckpt.model_checkpoint_path)
         model.saver.restore(session, ckpt.model_checkpoint_path)
@@ -92,13 +92,13 @@ def train():
     vocab_size = len(vocab)
     logging.info("Vocabulary size: %d" % vocab_size)
 
-    if not os.path.exists(FLAGS.train_dir):
-        os.makedirs(FLAGS.train_dir)
-    file_handler = logging.FileHandler("{0}/log.txt".format(FLAGS.train_dir))
+    if not os.path.exists(FLAGS.output_dir):
+        os.makedirs(FLAGS.output_dir)
+    file_handler = logging.FileHandler("{0}/log.txt".format(FLAGS.output_dir))
     logging.getLogger().addHandler(file_handler)
 
     print(vars(FLAGS))
-    with open(os.path.join(FLAGS.train_dir, "flags.json"), 'w') as fout:
+    with open(os.path.join(FLAGS.output_dir, "flags.json"), 'w') as fout:
         json.dump(FLAGS.__flags, fout)
 
     config = tf.ConfigProto()
@@ -171,7 +171,7 @@ def train():
                     valid_cost = validate(model, sess, x_dev, y_dev)
                     logging.info("Epoch %d Validation cost: %f time: %f" % (epoch, valid_cost, epoch_toc - epoch_tic))
                     ## Checkpoint
-                    checkpoint_path = os.path.join(FLAGS.train_dir, "best.ckpt")
+                    checkpoint_path = os.path.join(FLAGS.output_dir, "best.ckpt")
                     model.saver.save(sess, checkpoint_path, global_step=epoch)
 
             if len(previous_losses) > 2 and valid_cost > previous_losses[-1]:
