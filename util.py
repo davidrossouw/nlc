@@ -26,7 +26,7 @@ from numpy.random import choice as random_choice, randint as random_randint, ran
 
 import nlc_data
 
-FLAGS = tf.app.flags.FLAGS
+#FLAGS = tf.app.flags.FLAGS
 CHARS = list("abcdefghijklmnopqrstuvwxyz0123456789 ")
 vocab, reverse_vocab = None, None
 
@@ -35,7 +35,7 @@ def tokenize(string):
     return [int(s) for s in string.split()]
 
 
-def add_noise_to_string(a_string, amount_of_noise):
+def add_noise_to_string(a_string, amount_of_noise, max_seq_len):
     """Add some artificial spelling mistakes to the string"""
     if rand() < amount_of_noise * len(a_string):
         # Replace a character with a random character
@@ -45,7 +45,7 @@ def add_noise_to_string(a_string, amount_of_noise):
         # Delete a character
         random_char_position = random_randint(len(a_string))
         a_string = a_string[:random_char_position] + a_string[random_char_position + 1:]
-    if len(a_string) < FLAGS.max_seq_len and rand() < amount_of_noise * len(a_string):
+    if len(a_string) < max_seq_len and rand() < amount_of_noise * len(a_string):
         # Add a random character
         random_char_position = random_randint(len(a_string))
         a_string = a_string[:random_char_position] + random_choice(CHARS[:-1]) + a_string[random_char_position:]
@@ -58,16 +58,16 @@ def add_noise_to_string(a_string, amount_of_noise):
     return a_string
 
 
-def pair_iter(fnamex, fnamey, batch_size, num_layers, sort_and_shuffle=True):
+def pair_iter(fnamex, fnamey, batch_size, num_layers, FLAGS, sort_and_shuffle=True):
     global vocab, reverse_vocab
-    vocab, reverse_vocab = nlc_data.initialize_vocabulary(os.path.join(FLAGS.data_dir, FLAGS.tokenizer.lower(), "vocab.dat"))
+    vocab, reverse_vocab = nlc_data.initialize_vocabulary(os.path.join(FLAGS['data_dir'], FLAGS['tokenizer'].lower(), "vocab.dat"))
 
     fdx, fdy = open(fnamex), open(fnamey)
     batches = []
 
     while True:
         if len(batches) == 0:
-            refill(batches, fdx, fdy, batch_size, sort_and_shuffle=sort_and_shuffle)
+            refill(batches, fdx, fdy, batch_size, FLAGS, sort_and_shuffle=sort_and_shuffle)
         if len(batches) == 0:
             break
 
@@ -85,7 +85,7 @@ def pair_iter(fnamex, fnamey, batch_size, num_layers, sort_and_shuffle=True):
     return
 
 
-def refill(batches, fdx, fdy, batch_size, sort_and_shuffle=True):
+def refill(batches, fdx, fdy, batch_size, FLAGS, sort_and_shuffle=True):
     line_pairs = []
     linex = fdx.readline()
     # linex, liney = fdx.readline(), fdy.readline()
@@ -93,10 +93,10 @@ def refill(batches, fdx, fdy, batch_size, sort_and_shuffle=True):
     while linex:
         y_tokens = tokenize(linex) # y_tokens are source of truth
         orig_str = "".join(reverse_vocab[x] for x in y_tokens)
-        noisy_str = add_noise_to_string(orig_str, 0.2 / FLAGS.max_seq_len)
+        noisy_str = add_noise_to_string(orig_str, 0.2 / FLAGS['max_seq_len'], FLAGS['max_seq_len'])
         x_tokens = nlc_data.sentence_to_token_ids(noisy_str, vocab, tokenizer=get_tokenizer(FLAGS)) # x_tokens are noisy str
 
-        if len(x_tokens) < FLAGS.max_seq_len and len(y_tokens) < FLAGS.max_seq_len:
+        if len(x_tokens) < FLAGS['max_seq_len'] and len(y_tokens) < FLAGS['max_seq_len']:
             line_pairs.append((x_tokens, y_tokens))
         if len(line_pairs) == batch_size * 16:
             break
@@ -129,11 +129,11 @@ def padded(tokens, depth):
 
 
 def get_tokenizer(flags):
-    if flags.tokenizer.lower() == 'bpe':
+    if flags['tokenizer'].lower() == 'bpe':
         return nlc_data.bpe_tokenizer
-    elif flags.tokenizer.lower() == 'char':
+    elif flags['tokenizer'].lower() == 'char':
         return nlc_data.char_tokenizer
-    elif flags.tokenizer.lower() == 'word':
+    elif flags['tokenizer'].lower() == 'word':
         return nlc_data.basic_tokenizer
     else:
         raise Exception

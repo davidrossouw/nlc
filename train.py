@@ -33,32 +33,31 @@ from util import pair_iter
 
 logging.basicConfig(level=logging.INFO)
 
-tf.app.flags.DEFINE_float("learning_rate", 0.0003, "Learning rate.")
-tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.95, "Learning rate decays by this much.")
-tf.app.flags.DEFINE_float("max_gradient_norm", 10.0, "Clip gradients to this norm.")
-tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped on non-recurrent connections.")
-tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
-tf.app.flags.DEFINE_integer("epochs", 40, "Number of epochs to train.")
-tf.app.flags.DEFINE_integer("size", 256, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("num_layers", 2, "Number of layers in the model.")
-tf.app.flags.DEFINE_integer("max_vocab_size", 42, "Vocabulary size limit.")
-# tf.app.flags.DEFINE_integer("max_seq_len", 200, "Maximum sequence length.")
-tf.app.flags.DEFINE_integer("max_seq_len", 50, "Maximum sequence length.")
-tf.app.flags.DEFINE_string("data_dir", "data", "Data directory")
-tf.app.flags.DEFINE_string("output_dir", "data", "Training directory.")
-tf.app.flags.DEFINE_string("tokenizer", "CHAR", "BPE / CHAR / WORD.")
-tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
-tf.app.flags.DEFINE_integer("print_every", 100, "How many iterations to do per print.")
-
-FLAGS = tf.app.flags.FLAGS
+FLAGS = {
+  "learning_rate": 0.0003, #"Learning rate.")
+  "learning_rate_decay_factor": 0.95,# "Learning rate decays by this much.")
+  "max_gradient_norm": 10.0,# "Clip gradients to this norm.")
+  "dropout": 0.15,# "Fraction of units randomly dropped on non-recurrent connections.")
+  "batch_size": 64, #"Batch size to use during training.")
+  "epochs": 40,# "Number of epochs to train.")
+  "size": 256,# "Size of each model layer.")
+  "num_layers": 2, #"Number of layers in the model.")
+  "max_vocab_size": 42,# "Vocabulary size limit.")
+  "max_seq_len": 50, #"Maximum sequence length.")
+  "data_dir": "data", #"Data directory")
+  "output_dir": "data", #"Training directory.")
+  "tokenizer": "CHAR", #"BPE / CHAR / WORD.")
+  "optimizer": "adam", #"adam / sgd")
+  "print_every": 100 #"How many iterations to do per print.")
+}
 
 
 def create_model(session, vocab_size, forward_only):
     model = nlc_model.NLCModel(
-        vocab_size, FLAGS.size, FLAGS.num_layers, FLAGS.max_gradient_norm, FLAGS.batch_size,
-        FLAGS.learning_rate, FLAGS.learning_rate_decay_factor, FLAGS.dropout,
-        forward_only=forward_only, optimizer=FLAGS.optimizer)
-    ckpt = tf.train.get_checkpoint_state(FLAGS.output_dir)
+        vocab_size, FLAGS['size'], FLAGS['num_layers'], FLAGS['max_gradient_norm'], FLAGS['batch_size'],
+        FLAGS['learning_rate'], FLAGS['learning_rate_decay_factor'], FLAGS['dropout'],
+        forward_only=forward_only, optimizer=FLAGS['optimizer'])
+    ckpt = tf.train.get_checkpoint_state(FLAGS['output_dir'])
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
         logging.info("Reading model parameters from %s" % ckpt.model_checkpoint_path)
         model.saver.restore(session, ckpt.model_checkpoint_path)
@@ -71,8 +70,8 @@ def create_model(session, vocab_size, forward_only):
 
 def validate(model, sess, x_dev, y_dev):
     valid_costs, valid_lengths = [], []
-    for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_dev, y_dev, FLAGS.batch_size,
-                                                                            FLAGS.num_layers):
+    for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_dev, y_dev, FLAGS['batch_size'],
+                                                                            FLAGS['num_layers'], FLAGS):
         cost = model.test(sess, source_tokens, source_mask, target_tokens, target_mask)
         valid_costs.append(cost * target_mask.shape[1])
         valid_lengths.append(np.sum(target_mask[1:, :]))
@@ -83,28 +82,28 @@ def validate(model, sess, x_dev, y_dev):
 def train():
     """Train a translation model using NLC data."""
     # Prepare NLC data.
-    logging.info("Preparing NLC data in %s" % FLAGS.data_dir)
+    logging.info("Preparing NLC data in %s" % FLAGS['data_dir'])
 
     x_train, y_train, x_dev, y_dev, vocab_path = nlc_data.prepare_nlc_data(
-        FLAGS.data_dir + '/' + FLAGS.tokenizer.lower(), FLAGS.max_vocab_size,
+        FLAGS['data_dir'] + '/' + FLAGS['tokenizer'].lower(), FLAGS['max_vocab_size'],
         tokenizer=get_tokenizer(FLAGS))
     vocab, _ = nlc_data.initialize_vocabulary(vocab_path)
     vocab_size = len(vocab)
     logging.info("Vocabulary size: %d" % vocab_size)
 
-    if not os.path.exists(FLAGS.output_dir):
-        os.makedirs(FLAGS.output_dir)
-    file_handler = logging.FileHandler("{0}/log.txt".format(FLAGS.output_dir))
+    if not os.path.exists(FLAGS['output_dir']):
+        os.makedirs(FLAGS['output_dir'])
+    file_handler = logging.FileHandler("{0}/log.txt".format(FLAGS['output_dir']))
     logging.getLogger().addHandler(file_handler)
 
-    print(vars(FLAGS))
-    with open(os.path.join(FLAGS.output_dir, "flags.json"), 'w') as fout:
-        json.dump(FLAGS.__flags, fout)
+    print(FLAGS)
+    with open(os.path.join(FLAGS['output_dir'], "flags.json"), 'w') as fout:
+        json.dump(FLAGS, fout)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
-        logging.info("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
+        logging.info("Creating %d layers of %d units." % (FLAGS['num_layers'], FLAGS['size']))
         model = create_model(sess, vocab_size, False)
 
         #logging.info('Initial validation cost: %f' % validate(model, sess, x_dev, y_dev))
@@ -125,14 +124,14 @@ def train():
         exp_norm = None
         total_iters = 0
         start_time = time.time()
-        while (FLAGS.epochs == 0 or epoch < FLAGS.epochs):
+        while (FLAGS['epochs'] == 0 or epoch < FLAGS['epochs']):
             epoch += 1
             current_step = 0
 
             ## Train
             epoch_tic = time.time()
-            for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_train, y_train, FLAGS.batch_size,
-                                                                                    FLAGS.num_layers):
+            for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_train, y_train, FLAGS['batch_size'],
+                                                                                    FLAGS['num_layers'], FLAGS):
                 # Get a batch and make a step.
                 tic = time.time()
 
@@ -159,23 +158,23 @@ def train():
 
                 cost = cost / mean_length
 
-                if current_step % FLAGS.print_every == 0:
+                if current_step % FLAGS['print_every'] == 0:
                     logging.info(
                         'epoch %d, iter %d, cost %f, exp_cost %f, grad norm %f, param norm %f, tps %f, length mean/std %f/%f' %
                         (epoch, current_step, cost, exp_cost / exp_length, grad_norm, param_norm, tps, mean_length,
                          std_length))
 
-                if current_step % (FLAGS.print_every * 10) == 0:
+                if current_step % (FLAGS['print_every'] * 10) == 0:
                     ## Validate
                     epoch_toc = time.time()
                     valid_cost = validate(model, sess, x_dev, y_dev)
                     logging.info("Epoch %d Validation cost: %f time: %f" % (epoch, valid_cost, epoch_toc - epoch_tic))
                     ## Checkpoint
-                    checkpoint_path = os.path.join(FLAGS.output_dir, "best.ckpt")
+                    checkpoint_path = os.path.join(FLAGS['output_dir'], "best.ckpt")
                     model.saver.save(sess, checkpoint_path, global_step=epoch)
 
             if len(previous_losses) > 2 and valid_cost > previous_losses[-1]:
-                logging.info("Annealing learning rate by %f" % FLAGS.learning_rate_decay_factor)
+                logging.info("Annealing learning rate by %f" % FLAGS['learning_rate_decay_factor'])
                 sess.run(model.learning_rate_decay_op)
                 model.saver.restore(sess, checkpoint_path + ("-%d" % best_epoch))
             else:
